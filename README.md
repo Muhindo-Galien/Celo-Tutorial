@@ -103,21 +103,6 @@ In the above mint function, we are persisting only crucial NFT attributes on blo
 
 The `_setTokenURI` is acting as a helper method for setting the token URI, by adding to it the `internal` visibility modifier will make it available only inside this contract and its derived contracts. For the record, this method used to be part of the OpenZeppelin ERC721 utility methods. In the end, we are incrementing the token id, emitting the event and returning the token id.
 
-### 2. Implementing the update price function
-
-```Solidity
-function updatePrice(uint _tokenId, uint _price) public returns (bool) {
-  uint oldPrice = priceMap[_tokenId];
-  require(msg.sender == ownerOf(_tokenId), "Error, you are not the owner");
-  priceMap[_tokenId] = _price;
-
-  emit PriceUpdate(msg.sender, oldPrice, _price, _tokenId);
-
-  return true;
-}
-```
-The `updatePrice` method takes two parameters that are token id & price, we are loading the old NFT price using the token id. the `require` keyword helps us to evaluate conditions that must be satisfied otherwise an error is returned. Basically, we are checking if the user invoking the function is the owner of the NFT by using the OpenZeppelin `ownerOf` method. In case the condition is satisfied, we update the price, emit the P`riceUpdate `and return true.
-
 ## 3. Full Smart Contract implementation
 
 ```Solidity
@@ -162,17 +147,6 @@ contract NFT is ERC721, Ownable {
         tokenURIMap[_tokenId] = _tokenURI;
     }
 
-
-    function updatePrice(uint _tokenId, uint _price) public returns (bool) {
-        uint oldPrice = priceMap[_tokenId];
-        require(msg.sender == ownerOf(_tokenId), "Error, you are not the owner");
-        priceMap[_tokenId] = _price;
-
-        emit PriceUpdate(msg.sender, oldPrice, _price, _tokenId);
-
-        return true;
-    }
-
 }
 ```
 
@@ -181,54 +155,22 @@ contract NFT is ERC721, Ownable {
 1. Open the `hardhat.config.js` file in the project root directory and replace its contents with the following code:
 
 ```javascript
-require('@nomiclabs/hardhat-waffle');
-require('dotenv').config({ path: '.env' });
+require("@nomiclabs/hardhat-waffle");
+require("dotenv").config({ path: ".env" });
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
-
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
-
-const getEnv = (variable, optional = false) => {
-  if (!process.env[variable]) {
-    if (optional) {
-      console.warn(
-        `[@env]: Environmental variable for ${variable} is not supplied.`
-      );
-    } else {
-      throw new Error(
-        `You must create an environment variable for ${variable}`
-      );
-    }
-  }
-
-  return process.env[variable]?.replace(/\\n/gm, '\n');
-};
-
-const PRIVATE_KEY = getEnv('PRIVATE_KEY');
-
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
-
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
 module.exports = {
-  solidity: '0.8.4',
+  solidity: "0.8.4",
   networks: {
     alfajores: {
-      url: 'https://alfajores-forno.celo-testnet.org',
+      url: "https://alfajores-forno.celo-testnet.org", 
       accounts: [process.env.PRIVATE_KEY],
       chainId: 44787,
     },
   },
+  mocha: {
+    timeout: 500000, // 500 seconds max for running tests
+}
 };
-
 ```
 This configuration file sets up the networks to be used with Hardhat, including the Celo network. It retrieves the necessary configuration values from the `.env file`, which we will set up in the next step.
 
@@ -244,49 +186,35 @@ Replace `<Your_private_key>` with your private key.
 1. Open the `test` folder in the project directory and create a new file named `MyNFT.test.js`.
  Add the following code:
  ```javascript
- const { expect } = require("chai");
+const { expect } = require('chai');
+const {ethers} = require("hardhat");
 
-describe("NFT", function() {
-    let nftContract;
-    let owner;
-    let addr1;
-    let addr2;
+describe('NFT', function () {
+  let nftContract;
+  let owner;
+  let addr1;
 
-    beforeEach(async function() {
-        const NFT = await ethers.getContractFactory("NFT");
-        [owner, addr1, addr2] = await ethers.getSigners();
+  beforeEach(async function () {
+    const NFT = await ethers.getContractFactory('NFT');
+    owner = (await ethers.getSigners())[0]; // Retrieve owner as a signer
+    addr1 = '0x60031b5df905D92786dea1781E731B88b959c8A6'
 
-        nftContract = await NFT.deploy();
-        await nftContract.deployed();
-    });
+    nftContract = await NFT.deploy();
+    await nftContract.deployed();
+  });
 
-    it("It should mint a NFT successfully", async function() {
-        const recipient = addr1.address;
-        const tokenURI = "https://example.com/token-metadata.json";
-        const price = ethers.utils.parseEther("0.1");
+  it('Should mint a new NFT', async function () {
+    const recipient = addr1;
+    const tokenURI = 'https://example.com/token-metadata.json';
+    const price = ethers.utils.parseEther('0.1');
 
-        await nftContract.connect(owner).mint(tokenURI, recipient, price);
-        const tokenId = await nftContract.tokenCounter();
+    await nftContract.connect(owner).mint(tokenURI, recipient, price);
+    const tokenId = await nftContract.tokenCounter();
 
-        expect(await nftContract.ownerOf(tokenId)).to.equal(recipient);
-        expect(await nftContract.tokenURIMap(tokenId)).to.equal(tokenURI);
-        expect(await nftContract.priceMap(tokenId)).to.equal(price);
-    });
-
-    it("It should update NFT Price", async function() {
-        const recipient = addr1.address;
-        const tokenURI = "https://example.com/token-metadata.json";
-        const price = ethers.utils.parseEther("0.1");
-        const newPrice = ethers.utils.parseEther("0.2");
-
-        await nftContract.connect(owner).mint(tokenURI, recipient, price);
-        const tokenId = await nftContract.tokenCounter();
-
-        expect(await nftContract.priceMap(tokenId)).to.equal(price);
-
-        await nftContract.connect(recipient).updatePrice(tokenId, newPrice);
-        expect(await nftContract.priceMap(tokenId)).to.equal(newPrice);
-    });
+    expect(await nftContract.ownerOf(tokenId)).to.equal(recipient);
+    expect(await nftContract.tokenURIMap(tokenId)).to.equal(tokenURI);
+    expect(await nftContract.priceMap(tokenId)).to.equal(price);
+  });
 });
 
  ```
@@ -329,11 +257,12 @@ This command executes the deployment script, which is automatically created by H
 npx hardhat test --network alfajores
 ```
 You should be able to get the following result:
-
-![test terminal result](https://i.ibb.co/kBZcpj3/Screenshot-from-2023-06-01-20-13-47.png)
+![test terminal result](https://i.ibb.co/47prSMZ/Screenshot-from-2023-06-02-02-19-51.png)
 
 **Congratulations! You have successfully implemented, tested, and deployed an NFT smart contract with Hardhat on the Celo blockchain**. You can now interact with the contract using the generated artifacts and the deployed contract address.
 
 ## Conclusion
-In this tutorial, we learned how write a smart contract that can be used to create and update NFTs, we did also write tests for our smart contract and finally deployed it to the alfajores testnet. Given Alfajores`: an EVM-compatible blockchain developed by Celo, the same procedures can be used to build and deploy a DAPP to any EVM compatible network .
+In this tutorial, we learned how write a smart contract that can be used to create NFTs, we did also write tests for our smart contract and finally deployed it to the alfajores testnet. Given Alfajores`: an EVM-compatible blockchain developed by Celo, the same procedures can be used to build and deploy a DAPP to any EVM compatible network.
+
+The link to my project repository can be found [nft-tutorial](https://github.com/Muhindo-Galien/nft-tutorial)
 

@@ -496,5 +496,7 @@ You should be able to get the following result:
 ## Conclusion
 In this tutorial, we learned how write a smart contract that can be used to create NFTs, we did also write tests for our smart contract and finally deployed it to the alfajores testnet. Given Alfajores`: an EVM-compatible blockchain developed by Celo, the same procedures can be used to build and deploy a DAPP to any EVM compatible network.
 
+You can learn more about openzeppelin smart contract from this url [Openzeppelin Official Website](https://www.openzeppelin.com/)
+
 The link to my project repository can be found [nft-tutorial](https://github.com/Muhindo-Galien/nft-tutorial)
 

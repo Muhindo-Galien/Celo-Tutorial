@@ -6,18 +6,13 @@
 - [What You Will Learn After This Tutorial](#what-you-will-learn-after-this-tutorial)
 - [Step 1: Set up the development environment](#step-1-set-up-the-development-environment)
 - [Step 2: Implement the NFT smart contract](#step-2-implement-the-nft-smart-contract)
-  - [Implementing the mint function](#1-implementing-the-mint-function)
-  - [Full Smart Contract implementation](#full-smart-contract-implementation)
-- [Section 3](#section-3)
+  - [1. Implementing the mint function](#1-implementing-the-mint-function)
+  - [2. Full Smart Contract implementation](#2-full-smart-contract-implementation)
+- [Step 3: Configure Hardhat](step-3-onfigure-hardhat)
+- [Step 4: Write tests for the NFT smart contract](#step-4-write-tests-for-the-nft-smart-contract)
+- [Step 5: Deploy the NFT smart contract on Celo](#step-5-deploy-the-nft-smart-contract-on-celo)
+- [Conclusion](#conclusion)
 
-
-Step 2: Implement the NFT smart contract
-s-1. Implementing the mint function
-3. Full Smart Contract implementation
-Step 3: Configure Hardhat
-Step 4: Write tests for the NFT smart contract
-Step 5: Deploy the NFT smart contract on Celo
-Conclusion
 ## Introduction
 The emergence of blockchain technology has brought attention to various terms such as Smart Contracts and NFTs. However, it is important to understand the actual meaning behind these terms.
 
@@ -128,7 +123,7 @@ In the above mint function, we are persisting only crucial NFT attributes on blo
 
 The `_setTokenURI` is acting as a helper method for setting the token URI, by adding to it the `internal` visibility modifier will make it available only inside this contract and its derived contracts. For the record, this method used to be part of the OpenZeppelin ERC721 utility methods. In the end, we are incrementing the token id, emitting the event and returning the token id.
 
-## 3. Full Smart Contract implementation
+## 2. Full Smart Contract implementation
 
 ```Solidity
 // SPDX-License-Identifier: MIT

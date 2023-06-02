@@ -6,7 +6,12 @@
 - [What You Will Learn After This Tutorial](#what-you-will-learn-after-this-tutorial)
 - [Step 1: Set up the development environment](#step-1-set-up-the-development-environment)
 - [Step 2: Implement the NFT smart contract](#step-2-implement-the-nft-smart-contract)
-  - [1. Implementing the mint function](#1-implementing-the-mint-function)
+  - [1. Functions Breakdown and Explanation](#1-functions-breakdown-and-explanation)
+     - [mint Function](#mint-function)
+     - [_setTokenURI Function](#_settokenuri-function)
+     - [getTokenURI Function](#gettokenuri-function)
+     - [getTokenPrice Function](#gettokenprice-function)
+     - [setTokenPrice Function](#settokenprice-function)
   - [2. Full Smart Contract implementation](#2-full-smart-contract-implementation)
 - [Step 3: Configure Hardhat](step-3-onfigure-hardhat)
 - [Step 4: Write tests for the NFT smart contract](#step-4-write-tests-for-the-nft-smart-contract)
@@ -43,7 +48,7 @@ To accomplish this, we will utilize the following tools:
 
 ## Step 1: Set up the development environment
 
-1. Install `Hardha`t: Open your terminal and run the following command to install Hardhat globally:
+1. Install `Hardhat`: Open your terminal and run the following command to install Hardhat globally:
   ```bash
   npm install -g hardhat
   ```
@@ -68,26 +73,61 @@ Let’s create a new file named NFT.sol inside the contracts directory. This is 
  ```Solidity
 
 // SPDX-License-Identifier: MIT
-pragma solidity  ^0.8.0
+pragma solidity  ^0.8.17;
 
+/**
+ @ dev - visit https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/ERC721.sol to find the full code
+**/
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+/**
+ @ dev - visit https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol to find the full code
+**/
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+
+/**
+ * @title NFT contract
+ * @notice This contract provides functionality for minting and managing non-fungible tokens (NFTs).
+ */
 contract NFT is ERC721, Ownable {
-    address public _contractOwner;
-    uint256 public tokenCounter;
-    
+
+    /**
+     @dev Counter for tracking the number of tokens minted 
+    */
+    uint256 private tokenCounter;
+
+    /// tokenURIMap - Mapping of token IDs to their corresponding URI strings    
     mapping(uint => string) public tokenURIMap;
+
+    /// priceMap - Mapping of token IDs to their corresponding prices
     mapping(uint => uint) public priceMap;
 
-    event Minted(address indexed minter, uint price, uint nftID, string tokenURI);
-        
+
+    /** @dev Event triggered when a token is minted
+    *  @param minter The address of the minter who minted the token
+    *  @param price The price of the token
+    *  @param nftID The ID of the minted token
+    *  @param uri The URI of the token's metadata
+    */
+    event Minted(address indexed minter, uint price, uint nftID, string uri);
+
+     /** @dev Event triggered when the price of a token is updated
+     *  @param owner The address of the token owner
+     *  @param oldPrice The old price of the token
+     *  @param newPrice The new price of the token
+     *  @param nftID The ID of the token
+     */   
     event PriceUpdate(address indexed owner, uint oldPrice, uint newPrice, uint nftID);
 
+     /** @dev Contract constructor
+     *  It initializes the NFT contract with the specified name and symbol, and sets the initial value of tokenCounter to 1
+     */
     constructor() ERC721("MyNFT", "MNFT") {
-        _contractOwner = msg.sender;
+
         tokenCounter = 1;
+
     }
+ }
  ```
  As you can see, here we are doing the following:
 
@@ -98,61 +138,22 @@ Inheriting the OpenZeppelin ERC721 smart contract into our `NFT.sol` smart contr
 - Defining the `Minted & PriceUpadte` events that will be emitted when the `mint & priceUpadte` will be fired.
 - Given the constructor is always the first function that is called while deploying a smart contract. We are providing directly the NFT name as `MyNFT` and `MNFT` as the symbol. The `msg.sender` is a keyword which returns the address of the account invoking the smart contract and we are setting the initial token count as one.
 
- ### 1. Implementing the mint function
+ ### 1. Functions Breakdown and Explanation
 ```Solidity
-function mint(string memory _uri, address _toAddress, uint _price) public returns (uint){
-  uint _tokenId = tokenCounter;
-  priceMap[_tokenId] = _price;
+     /** @dev Mint a new token and assign it to the specified address
+     *  @param _uri The URI of the token's metadata
+     *  @param _toAddress The address to which the minted token will be assigned
+     *  @param _price The price of the minted token
+     *  @return mintedTokenID The ID of the minted token
+     */
+    function mint(string memory _uri, address _toAddress, uint _price) public onlyOwner returns (uint mintedTokenID){
 
-  _safeMint(_toAddress, _tokenId);
-  _setTokenURI(_tokenId, _uri);
-
-  tokenCounter++;
-
-  emit Minted(_toAddress, _price, _tokenId, _uri);
-
-  return _tokenId;
-}
-
-function _setTokenURI(uint256 _tokenId, string memory _uri) internal virtual {
-   require(_exists(_tokenId),"ERC721Metadata: URI set of nonexistent token"); 
-   tokenURIMap[_tokenId] = _uri;
-}
-```
-In the above mint function, we are persisting only crucial NFT attributes on blockchain in order to minimize the cost since storing data directly on a blockchain has an associated cost, it won’t be financially feasible if all the NFT metadata is stored on blockchain, the rest of NFT metadata can be stored on a centralised database pointing to the NFT data stored on blockchain using token URI attribute. After setting the token id and price, we are calling the `_safeMint` method from OpenZeppelin ERC721 that literally mints the new NFT. The method takes two parameters, the minter address and the token id of the new-minted NFT.
-
-The `_setTokenURI` is acting as a helper method for setting the token URI, by adding to it the `internal` visibility modifier will make it available only inside this contract and its derived contracts. For the record, this method used to be part of the OpenZeppelin ERC721 utility methods. In the end, we are incrementing the token id, emitting the event and returning the token id.
-
-## 2. Full Smart Contract implementation
-
-```Solidity
-// SPDX-License-Identifier: MIT
-pragma solidity  ^0.8.0
-
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-contract NFT is ERC721, Ownable {
-    address public _contractOwner;
-    uint256 public tokenCounter;
-    
-    mapping(uint => string) public tokenURIMap;
-    mapping(uint => uint) public priceMap;
-
-    event Minted(address indexed minter, uint price, uint nftID, string uri);
-        
-    event PriceUpdate(address indexed owner, uint oldPrice, uint newPrice, uint nftID);
-
-    constructor() ERC721("MyNFT", "MNFT") {
-        _contractOwner = msg.sender;
-        tokenCounter = 1;
-    }
-
-    function mint(string memory _uri, address _toAddress, uint _price) public returns (uint){
         uint _tokenId = tokenCounter;
+
         priceMap[_tokenId] = _price;
 
         _safeMint(_toAddress, _tokenId);
+
         _setTokenURI(_tokenId, _uri);
 
         tokenCounter++;
@@ -162,9 +163,220 @@ contract NFT is ERC721, Ownable {
         return _tokenId;
     }
 
+     /** 
+     * @dev Set the URI of the specified token
+     *  @param _tokenId The ID of the token
+     *  @param _tokenURI The URI of the token's metadata
+     */
     function _setTokenURI(uint256 _tokenId, string memory _tokenURI) internal virtual {
         require(_exists(_tokenId),"ERC721Metadata: URI set of nonexistent token"); 
         tokenURIMap[_tokenId] = _tokenURI;
+    }
+
+     /** 
+      * @dev Get the URI of the specified token
+      *  @param _tokenId The ID of the token
+      *  @return The URI of the token's metadata
+      */
+    function getTokenURI(uint256 _tokenId) public view returns (string memory) {
+        require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
+        return tokenURIMap[_tokenId];
+    }
+
+     /**
+     * @dev Get the price of the specified token
+     *  @param _tokenId The ID of the token
+     *  @return priceMapTokenID The price of the token
+     */
+    function getTokenPrice(uint256 _tokenId) public view returns (uint256 priceMapTokenID) {
+        require(_exists(_tokenId), "ERC721Metadata: Price query for nonexistent token");
+        return priceMap[_tokenId];
+    }
+
+     /** @dev Set the price of the specified token
+     *  @param _tokenId The ID of the token
+     *  @param _newPrice The new price for the token
+     */
+    function setTokenPrice(uint256 _tokenId, uint256 _newPrice) public onlyOwner {
+        require(_exists(_tokenId), "ERC721Metadata: Price set for nonexistent token");
+        uint256 _oldPrice = priceMap[_tokenId];
+        priceMap[_tokenId] = _newPrice;
+
+        emit PriceUpdate(owner(), _oldPrice, _newPrice, _tokenId);
+    }
+
+```
+
+### `mint` Function
+In the above mint function, we are persisting only crucial NFT attributes on blockchain in order to minimize the cost since storing data directly on a blockchain has an associated cost, it won’t be financially feasible if all the NFT metadata is stored on blockchain, the rest of NFT metadata can be stored on a centralised database pointing to the NFT data stored on blockchain using token URI attribute. After setting the token id and price, we are calling the `_safeMint` method from OpenZeppelin ERC721 that literally mints the new NFT. The method takes two parameters, the minter address and the token id of the new-minted NFT.
+
+### `_setTokenURI` Function
+
+The `_setTokenURI` is acting as a helper method for setting the token URI, by adding to it the `internal` visibility modifier will make it available only inside this contract and its derived contracts. For the record, this method used to be part of the OpenZeppelin ERC721 utility methods. In the end, we are incrementing the token id, emitting the event and returning the token id.
+
+### `getTokenURI` function
+The purpose of the `getTokenURI` function is to retrieve the URI (Uniform Resource Identifier) of a specific token. In ERC721 tokens, the URI is typically used to store metadata associated with the token, such as its name, image, description, or other relevant information.
+
+Here's how the function works:
+- It takes `_tokenId` as a parameter, representing the ID of the token for which the URI is being queried.
+- The function checks if the token with the specified `_tokenId` exists by calling the `_exists` function. If the token doesn't exist, it reverts the transaction with an error message.
+- If the token exists, the function retrieves the URI associated with the `_tokenId` from the `tokenURIMap` mapping.
+- Finally, it returns the URI as a `string` to the caller.
+
+This function is useful when you want to retrieve the metadata associated with a specific token, such as accessing an external resource (e.g., an image or description) based on the URI provided.
+
+### `getTokenPrice` Function
+
+The `getTokenPrice` function is used to retrieve the price of a specific token. It allows you to get the current price associated with a token ID stored in the `priceMap` mapping.
+
+Here's how the function works:
+- It takes `_tokenId` as a parameter, representing the ID of the token for which the price is being queried.
+- The function checks if the token with the specified `_tokenId` exists by calling the `_exists` function. If the token doesn't exist, it reverts the transaction with an error message.
+- If the token exists, the function retrieves the price associated with the `_tokenId` from the `priceMap` mapping.
+- Finally, it returns the price as a `uint256` to the caller.
+
+This function is useful when you want to retrieve the price of a specific token, such as for displaying the price to users or performing price-related operations within your smart contract's logic.
+
+### `setTokenPrice` Function
+The setTokenPrice function allows the contract owner to set the price for a specific token. It is used to update the price associated with a token ID in the priceMap mapping.
+
+Here's how the function works:
+
+It takes _tokenId and _newPrice as parameters, representing the ID of the token and the new price to be set, respectively.
+The function checks if the token with the specified _tokenId exists by calling the _exists function. If the token doesn't exist, it reverts the transaction with an error message.
+If the token exists, the function first retrieves the old price associated with the _tokenId from the priceMap mapping and stores it in the _oldPrice variable.
+Then, it updates the priceMap mapping with the new price _newPrice for the specified _tokenId.
+Finally, it emits a PriceUpdate event to notify listeners about the price change, including the contract owner, the old price, the new price, and the token ID.
+This function is designed to be called only by the contract owner, ensuring that only the owner has the authority to update the token prices. It provides a way to manage and update the prices associated with specific tokens within the contract.
+
+
+
+
+
+
+
+## 2. Full Smart Contract implementation
+
+```Solidity
+// SPDX-License-Identifier: MIT
+pragma solidity  ^0.8.17;
+
+/**
+ @ dev - visit https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/ERC721.sol to find the full code
+**/
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+/**
+ @ dev - visit https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol to find the full code
+**/
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+
+/**
+ * @title NFT contract
+ * @notice This contract provides functionality for minting and managing non-fungible tokens (NFTs).
+ */
+contract NFT is ERC721, Ownable {
+
+    /**
+     @dev Counter for tracking the number of tokens minted 
+    */
+    uint256 private tokenCounter;
+
+    /// tokenURIMap - Mapping of token IDs to their corresponding URI strings    
+    mapping(uint => string) public tokenURIMap;
+
+    /// priceMap - Mapping of token IDs to their corresponding prices
+    mapping(uint => uint) public priceMap;
+
+
+    /** @dev Event triggered when a token is minted
+    *  @param minter The address of the minter who minted the token
+    *  @param price The price of the token
+    *  @param nftID The ID of the minted token
+    *  @param uri The URI of the token's metadata
+    */
+    event Minted(address indexed minter, uint price, uint nftID, string uri);
+
+     /** @dev Event triggered when the price of a token is updated
+     *  @param owner The address of the token owner
+     *  @param oldPrice The old price of the token
+     *  @param newPrice The new price of the token
+     *  @param nftID The ID of the token
+     */   
+    event PriceUpdate(address indexed owner, uint oldPrice, uint newPrice, uint nftID);
+
+     /** @dev Contract constructor
+     *  It initializes the NFT contract with the specified name and symbol, and sets the initial value of tokenCounter to 1
+     */
+    constructor() ERC721("MyNFT", "MNFT") {
+
+        tokenCounter = 1;
+
+    }
+
+     /** @dev Mint a new token and assign it to the specified address
+     *  @param _uri The URI of the token's metadata
+     *  @param _toAddress The address to which the minted token will be assigned
+     *  @param _price The price of the minted token
+     *  @return mintedTokenID The ID of the minted token
+     */
+    function mint(string memory _uri, address _toAddress, uint _price) public onlyOwner returns (uint mintedTokenID){
+
+        uint _tokenId = tokenCounter;
+
+        priceMap[_tokenId] = _price;
+
+        _safeMint(_toAddress, _tokenId);
+
+        _setTokenURI(_tokenId, _uri);
+
+        tokenCounter++;
+
+        emit Minted(_toAddress, _price, _tokenId, _uri);
+
+        return _tokenId;
+    }
+
+     /** 
+     * @dev Set the URI of the specified token
+     *  @param _tokenId The ID of the token
+     *  @param _tokenURI The URI of the token's metadata
+     */
+    function _setTokenURI(uint256 _tokenId, string memory _tokenURI) internal virtual {
+        require(_exists(_tokenId),"ERC721Metadata: URI set of nonexistent token"); 
+        tokenURIMap[_tokenId] = _tokenURI;
+    }
+
+     /** 
+      * @dev Get the URI of the specified token
+      *  @param _tokenId The ID of the token
+      *  @return The URI of the token's metadata
+      */
+    function getTokenURI(uint256 _tokenId) public view returns (string memory) {
+        require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
+        return tokenURIMap[_tokenId];
+    }
+
+     /**
+     * @dev Get the price of the specified token
+     *  @param _tokenId The ID of the token
+     *  @return priceMapTokenID The price of the token
+     */
+    function getTokenPrice(uint256 _tokenId) public view returns (uint256 priceMapTokenID) {
+        require(_exists(_tokenId), "ERC721Metadata: Price query for nonexistent token");
+        return priceMap[_tokenId];
+    }
+
+     /** @dev Set the price of the specified token
+     *  @param _tokenId The ID of the token
+     *  @param _newPrice The new price for the token
+     */
+    function setTokenPrice(uint256 _tokenId, uint256 _newPrice) public onlyOwner {
+        require(_exists(_tokenId), "ERC721Metadata: Price set for nonexistent token");
+        uint256 _oldPrice = priceMap[_tokenId];
+        priceMap[_tokenId] = _newPrice;
+
+        emit PriceUpdate(owner(), _oldPrice, _newPrice, _tokenId);
     }
 
 }
@@ -283,6 +495,8 @@ You should be able to get the following result:
 
 ## Conclusion
 In this tutorial, we learned how write a smart contract that can be used to create NFTs, we did also write tests for our smart contract and finally deployed it to the alfajores testnet. Given Alfajores`: an EVM-compatible blockchain developed by Celo, the same procedures can be used to build and deploy a DAPP to any EVM compatible network.
+
+You can learn more about openzeppelin smart contract from this url [Openzeppelin Official Website](https://www.openzeppelin.com/)
 
 The link to my project repository can be found [nft-tutorial](https://github.com/Muhindo-Galien/nft-tutorial)
 

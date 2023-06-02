@@ -1,5 +1,24 @@
 # How-to-implement-test-and-deploy-NFT-Smart-Contract-with-Hardhat-on-celo-Blockchain
+## Table of Contents
 
+- [Introduction](#introduction)
+- [Prerequisites](#prerequisites)
+- [What You Will Learn After This Tutorial](#what-you-will-learn-after-this-tutorial)
+- [Step 1: Set up the development environment](#step-1-set-up-the-development-environment)
+- [Step 2: Implement the NFT smart contract](#step-2-implement-the-nft-smart-contract)
+  - [Implementing the mint function](#1-implementing-the-mint-function)
+  - [Full Smart Contract implementation](#full-smart-contract-implementation)
+- [Section 3](#section-3)
+
+
+Step 2: Implement the NFT smart contract
+s-1. Implementing the mint function
+3. Full Smart Contract implementation
+Step 3: Configure Hardhat
+Step 4: Write tests for the NFT smart contract
+Step 5: Deploy the NFT smart contract on Celo
+Conclusion
+## Introduction
 The emergence of blockchain technology has brought attention to various terms such as Smart Contracts and NFTs. However, it is important to understand the actual meaning behind these terms.
 
 Smart contracts refer to programs stored on a blockchain that execute when specific predetermined conditions are met. These contracts can store small amounts of data using common data structures, which is crucial for tokenization use cases. Tokenization involves mapping token identifiers to owner identifiers, enabling tracking of ownership for different tokens.
@@ -20,6 +39,12 @@ To accomplish this, we will utilize the following tools:
 - Basic understanding of Solidity and smart contracts.
 - Node.js and npm (Node Package Manager) installed on your machine.
 - Familiarity with the command line interface (CLI).
+
+## What You Will Learn After This Tutorial
+
+- how to write a smart contract that can be used to create NFTs
+- write tests for our smart contract
+- deployed it to the alfajores testnet
 
 ## Step 1: Set up the development environment
 
